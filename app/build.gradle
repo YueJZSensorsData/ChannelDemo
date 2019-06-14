@@ -1,0 +1,94 @@
+apply plugin: 'com.android.application'
+
+//添加 com.sensorsdata.analytics.android 插件
+apply plugin: 'com.sensorsdata.analytics.android'
+//生成打包时间
+def releaseTime() {
+    return new Date().format("yyyy-MM-dd", TimeZone.getTimeZone("UTC"))
+}
+
+android {
+    compileSdkVersion 28
+    defaultConfig {
+        applicationId "com.sensors.channeldemo"
+        minSdkVersion 28
+        targetSdkVersion 28
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            //多渠道打包配置
+            applicationVariants.all { variant ->
+                variant.outputs.all {
+                    outputFileName = "${variant.name}-${variant.versionName}-${releaseTime()}.apk"
+                }
+            }
+
+        }
+
+        debug{
+//            versionNameSuffix "-debug"                       //包名后缀为“-debug”
+            minifyEnabled false                              //是否混淆
+            zipAlignEnabled false                            //Zipalign优化
+        }
+    }
+
+    flavorDimensions "yingyongbao"
+
+    // 渠道配置
+    productFlavors {
+        yingyongbao {}
+        wandoujia {}
+        _360 {}
+        baidu {}
+        xiaomi {}
+    }
+
+    productFlavors.all { flavor ->
+        flavor.manifestPlaceholders = [DOWNLOAD_CHANNEL: name]  //动态地修改AndroidManifest中的渠道名
+    }
+}
+
+
+this.afterEvaluate { Project project ->
+    def channelName = "yingyongbao"
+    def allTask =  project.tasks.getNames()
+    allTask.each { taskName ->
+        if (taskName.toUpperCase().contains("transformClassesWithSensorsAnalyticsAutoTrackFor".toUpperCase() + channelName.toUpperCase())) {
+            def preBuildTask = project.tasks.getByName(taskName)
+            preBuildTask.doFirst {
+                println("preBuildTaskdoFirst" + channelName)
+                sensorsAnalytics {
+                    sdk {
+                        disableIMEI = true
+                    }
+                }
+            }
+            preBuildTask.doLast {
+                println("preBuildTaskdoLast" + channelName)
+                sensorsAnalytics {
+                    sdk {
+                        disableIMEI = false
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    //添加 Sensors Analytics SDK 依赖
+    implementation 'com.sensorsdata.analytics.android:SensorsAnalyticsSDK:3.1.4'
+}
