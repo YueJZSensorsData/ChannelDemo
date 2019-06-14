@@ -52,13 +52,18 @@ android {
     }
 }
 
-
+//在 Project 配置结束后调用
 this.afterEvaluate { Project project ->
+    //需要特殊配置的渠道
     def channelName = "yingyongbao"
     def allTask =  project.tasks.getNames()
+    //测试发现，渠道是yingyongbao，但是会执行
+    // transformClassesWithSensorsAnalyticsAutoTrackForYingyongbaoRelease 这样名称的任务，
+    // 所以需要对大小写进行处理
     allTask.each { taskName ->
         if (taskName.toUpperCase().contains("transformClassesWithSensorsAnalyticsAutoTrackFor".toUpperCase() + channelName.toUpperCase())) {
             def preBuildTask = project.tasks.getByName(taskName)
+            //开始任务之前的配置
             preBuildTask.doFirst {
                 println("preBuildTaskdoFirst" + channelName)
                 sensorsAnalytics {
@@ -67,6 +72,7 @@ this.afterEvaluate { Project project ->
                     }
                 }
             }
+            //任务结束之后的配置，防止影响其它任务
             preBuildTask.doLast {
                 println("preBuildTaskdoLast" + channelName)
                 sensorsAnalytics {
@@ -77,7 +83,8 @@ this.afterEvaluate { Project project ->
             }
         }
     }
-}
+ }
+
 
 
 
